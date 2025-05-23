@@ -18,18 +18,18 @@ This repository features **automated version detection and building**:
 
 **Latest Version Tracked**: `0.9.3` (both amd64 and arm64)
 
-Check the [Releases page](https://github.com/bob-mattax/claude-desktop-debian/releases) for the latest automated builds, or [Actions](https://github.com/bob-mattax/claude-desktop-debian/actions) to see builds in progress.
+Check the [Releases page](https://github.com/rlmattax/claude-desktop-debian/releases) for the latest automated builds, or [Actions](https://github.com/rlmattax/claude-desktop-debian/actions) to see builds in progress.
 
 ## 📦 Quick Installation
 
 ### Option 1: Download Pre-built Packages (Recommended)
-Visit our [Releases page](https://github.com/bob-mattax/claude-desktop-debian/releases) and download:
+Visit our [Releases page](https://github.com/rlmattax/claude-desktop-debian/releases) and download:
 - `claude-desktop_VERSION_amd64.deb` for Debian/Ubuntu systems
 - `claude-desktop-VERSION-amd64.AppImage` for universal Linux compatibility
 
 ### Option 2: Build Yourself
 ```bash
-git clone https://github.com/bob-mattax/claude-desktop-debian.git
+git clone https://github.com/rlmattax/claude-desktop-debian.git
 cd claude-desktop-debian
 ./build.sh  # Creates .deb package by default
 ```
@@ -58,7 +58,7 @@ For Debian-based distributions (Debian, Ubuntu, Linux Mint, Pop!_OS, etc.), you 
 
 ```bash
 # Clone this repository
-git clone https://github.com/bob-mattax/claude-desktop-debian.git
+git clone https://github.com/rlmattax/claude-desktop-debian.git
 cd claude-desktop-debian
 
 # Build the package (Defaults to .deb and cleans build files)
@@ -207,7 +207,7 @@ See [`AUTOMATION.md`](AUTOMATION.md) for detailed information about the automati
 
 This project was originally inspired by [k3d3's claude-desktop-linux-flake](https://github.com/k3d3/claude-desktop-linux-flake) and their [Reddit post](https://www.reddit.com/r/ClaudeAI/comments/1hgsmpq/i_successfully_ran_claude_desktop_natively_on/) about running Claude Desktop natively on Linux. The sophisticated build system was later developed by [aaddrick](https://github.com/aaddrick).
 
-**Current Maintainer**: Bob Mattax ([bob-mattax](https://github.com/bob-mattax))
+**Current Maintainer**: Bob Mattax ([rlmattax](https://github.com/rlmattax))
 
 **Original Authors**:
 - [k3d3](https://github.com/k3d3) - Original NixOS implementation and proof of concept

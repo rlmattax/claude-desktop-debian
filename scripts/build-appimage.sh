@@ -16,7 +16,7 @@ echo "Work Directory: $WORK_DIR"
 echo "App Staging Directory: $APP_STAGING_DIR"
 echo "Package Name: $PACKAGE_NAME"
 
-COMPONENT_ID="io.github.bob-mattax.claude-desktop-debian"
+COMPONENT_ID="io.github.rlmattax.claude-desktop-debian"
 # Define AppDir structure path
 APPDIR_PATH="$WORK_DIR/${COMPONENT_ID}.AppDir"
 rm -rf "$APPDIR_PATH"
@@ -185,7 +185,7 @@ cat > "$APPDATA_FILE" << EOF
   <id>$COMPONENT_ID</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
-  <developer id="io.github.bob-mattax">
+  <developer id="io.github.rlmattax">
     <name>Bob Mattax</name>
   </developer>
 
@@ -194,21 +194,32 @@ cat > "$APPDATA_FILE" << EOF
 
   <description>
     <p>
-      Provides a desktop experience for interacting with Claude AI, wrapping the web interface.
+      Claude Desktop for Linux provides a native desktop experience for interacting with Claude AI. 
+      This unofficial build packages the Windows Claude Desktop application to run seamlessly on 
+      Debian and Ubuntu-based Linux distributions.
+    </p>
+    <p>
+      Features include full Model Context Protocol (MCP) support, global hotkey (Ctrl+Alt+Space), 
+      system tray integration, and proper Linux desktop integration.
     </p>
   </description>
 
-  <launchable type="desktop-id">${COMPONENT_ID}.desktop</launchable> <!-- Reference the actual .desktop file -->
+  <launchable type="desktop-id">${COMPONENT_ID}.desktop</launchable>
 
-  <icon type="stock">${COMPONENT_ID}</icon> <!-- Use the icon name from .desktop -->
-  <url type="homepage">https://github.com/bob-mattax/claude-desktop-debian</url>
+  <icon type="stock">${COMPONENT_ID}</icon>
+  <url type="homepage">https://claude.ai</url>
+  <url type="bugtracker">https://github.com/rlmattax/claude-desktop-debian/issues</url>
+  <url type="help">https://github.com/rlmattax/claude-desktop-debian/blob/main/README.md</url>
+  
   <screenshots>
-      <screenshot type="default">
-          <image>https://github.com/user-attachments/assets/93080028-6f71-48bd-8e59-5149d148cd45</image>
-      </screenshot>
+    <screenshot type="default">
+      <caption>Claude Desktop running on Linux</caption>
+      <image>https://github.com/user-attachments/assets/93080028-6f71-48bd-8e59-5149d148cd45</image>
+    </screenshot>
   </screenshots>
+  
   <provides>
-    <binary>AppRun</binary> <!-- Provide the actual binary -->
+    <binary>AppRun</binary>
   </provides>
 
   <categories>
@@ -221,7 +232,8 @@ cat > "$APPDATA_FILE" << EOF
   <releases>
     <release version="$VERSION" date="$(date +%Y-%m-%d)">
       <description>
-        <p>Version $VERSION.</p>
+        <p>Claude Desktop version $VERSION for Linux.</p>
+        <p>This release includes the latest upstream Claude Desktop features packaged for Linux systems.</p>
       </description>
     </release>
   </releases>
