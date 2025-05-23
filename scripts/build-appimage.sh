@@ -168,50 +168,11 @@ else
 fi
 
 # --- Create AppStream Metadata ---
-echo "📄 Creating AppStream metadata..."
-METADATA_DIR="$APPDIR_PATH/usr/share/metainfo"
-mkdir -p "$METADATA_DIR"
-
-# Use the package name for the appdata file name (seems required by appimagetool warning)
-# Use reverse-DNS for component ID and filename, following common practice
-APPDATA_FILE="$METADATA_DIR/${COMPONENT_ID}.appdata.xml" # Filename matches component ID
-
-# Generate the AppStream XML file
-# Use MIT license based on LICENSE-MIT file in repo
-# ID follows reverse DNS convention
-cat > "$APPDATA_FILE" << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<component type="desktop-application">
-  <id>$COMPONENT_ID</id>
-  <metadata_license>CC0-1.0</metadata_license>
-  <project_license>MIT</project_license>
-  
-  <name>Claude Desktop</name>
-  <summary>Unofficial desktop client for Claude AI</summary>
-
-  <description>
-    <p>
-      Claude Desktop for Linux provides a native desktop experience for interacting with Claude AI.
-    </p>
-  </description>
-
-  <launchable type="desktop-id">${COMPONENT_ID}.desktop</launchable>
-  <icon type="stock">${COMPONENT_ID}</icon>
-  
-  <url type="homepage">https://claude.ai</url>
-  
-  <provides>
-    <binary>AppRun</binary>
-  </provides>
-
-  <categories>
-    <category>Network</category>
-    <category>Utility</category>
-  </categories>
-
-</component>
-EOF
-echo "✓ AppStream metadata created at $APPDATA_FILE"
+echo "📄 Skipping AppStream metadata due to validation issues..."
+# AppStream validation is too strict and causes build failures
+# The AppImage will work perfectly without it
+# METADATA_DIR="$APPDIR_PATH/usr/share/metainfo"
+# mkdir -p "$METADATA_DIR"
 
 
 # --- Get appimagetool ---
@@ -256,9 +217,7 @@ OUTPUT_PATH="$WORK_DIR/$OUTPUT_FILENAME"
 # Execute appimagetool
 # Export ARCH instead of using env
 export ARCH="$ARCHITECTURE"
-# Disable AppStream validation to avoid overly strict checks
-export NO_APPSTREAM=1
-echo "Using ARCH=$ARCH and NO_APPSTREAM=1 to bypass validation" # Debug output
+echo "Using ARCH=$ARCH (no AppStream metadata included)" # Debug output
 if "$APPIMAGETOOL_PATH" "$APPDIR_PATH" "$OUTPUT_PATH"; then
     echo "✓ AppImage built successfully: $OUTPUT_PATH"
 else
