@@ -1,0 +1,2 @@
+# Dependencies for automation scripts
+requests>=2.25.0 

@@ -16,7 +16,7 @@ echo "Work Directory: $WORK_DIR"
 echo "App Staging Directory: $APP_STAGING_DIR"
 echo "Package Name: $PACKAGE_NAME"
 
-COMPONENT_ID="io.github.aaddrick.claude-desktop-debian"
+COMPONENT_ID="io.github.bob-mattax.claude-desktop-debian"
 # Define AppDir structure path
 APPDIR_PATH="$WORK_DIR/${COMPONENT_ID}.AppDir"
 rm -rf "$APPDIR_PATH"
@@ -185,8 +185,8 @@ cat > "$APPDATA_FILE" << EOF
   <id>$COMPONENT_ID</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
-  <developer id="io.github.aaddrick">
-    <name>aaddrick</name>
+  <developer id="io.github.bob-mattax">
+    <name>Bob Mattax</name>
   </developer>
 
   <name>Claude Desktop</name>
@@ -201,7 +201,7 @@ cat > "$APPDATA_FILE" << EOF
   <launchable type="desktop-id">${COMPONENT_ID}.desktop</launchable> <!-- Reference the actual .desktop file -->
 
   <icon type="stock">${COMPONENT_ID}</icon> <!-- Use the icon name from .desktop -->
-  <url type="homepage">https://github.com/aaddrick/claude-desktop-debian</url>
+  <url type="homepage">https://github.com/bob-mattax/claude-desktop-debian</url>
   <screenshots>
       <screenshot type="default">
           <image>https://github.com/user-attachments/assets/93080028-6f71-48bd-8e59-5149d148cd45</image>

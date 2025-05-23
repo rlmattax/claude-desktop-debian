@@ -1,0 +1,139 @@
+name: Check for Claude Desktop Updates
+
+on:
+  schedule:
+    # Check daily at 12:00 UTC (good citizen timing)
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+    # Allow manual triggering
+
+jobs:
+  check-updates:
+    name: Check for Upstream Updates
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
+      version_info: ${{ steps.check.outputs.version_info }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+      
+      - name: Check for Updates
+        id: check
+        run: |
+          echo "Running version check..."
+          if python3 scripts/check-upstream-version.py; then
+            echo "No changes detected"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            exit_code=$?
+            if [ $exit_code -eq 1 ]; then
+              echo "Changes detected!"
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+              
+              # Get version info for outputs
+              if [ -f ".claude-version-metadata" ]; then
+                version_info=$(python3 -c "
+          import json
+          with open('.claude-version-metadata', 'r') as f:
+              data = json.load(f)
+              versions = []
+              for arch, info in data['architectures'].items():
+                  version = info.get('version', 'unknown')
+                  versions.append(f'{arch}:{version}')
+              print(','.join(versions))
+          ")
+                echo "version_info=$version_info" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "Error occurred during version check (exit code: $exit_code)"
+              exit $exit_code
+            fi
+          fi
+      
+      - name: Commit Updated Metadata
+        if: steps.check.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .claude-version-metadata
+          git commit -m "Update Claude Desktop version metadata
+          
+          Detected new upstream version(s): ${{ steps.check.outputs.version_info }}
+          
+          This commit updates the version tracking metadata file."
+          git push
+
+  trigger-build:
+    name: Trigger Build
+    needs: check-updates
+    if: needs.check-updates.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: main  # Ensure we have the latest commit with metadata
+      
+      - name: Trigger Build Workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const result = await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'ci.yml',
+              ref: 'main'
+            });
+            
+            console.log('Build workflow triggered successfully');
+            console.log('Version info:', '${{ needs.check-updates.outputs.version_info }}');
+      
+      - name: Create Issue for New Version
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const versionInfo = '${{ needs.check-updates.outputs.version_info }}';
+            const versions = versionInfo.split(',').map(v => {
+              const [arch, version] = v.split(':');
+              return `- ${arch}: ${version}`;
+            }).join('\n');
+            
+            const issueBody = `🎉 **New Claude Desktop Version Detected!**
+            
+            The automated version checker has detected a new upstream release:
+            
+            ${versions}
+            
+            **Actions Taken:**
+            - ✅ Version metadata updated
+            - ✅ Build workflow triggered automatically
+            - 📦 New packages will be available soon
+            
+            **Links:**
+            - [Build Workflow Run](${context.payload.repository.html_url}/actions)
+            - [Claude Desktop Official](https://claude.ai/download)
+            
+            *This issue was created automatically by the upstream version checker.*`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `New Claude Desktop Version Available: ${versionInfo}`,
+              body: issueBody,
+              labels: ['enhancement', 'automated', 'new-version']
+            }); 
