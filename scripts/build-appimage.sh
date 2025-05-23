@@ -185,38 +185,20 @@ cat > "$APPDATA_FILE" << EOF
   <id>$COMPONENT_ID</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
-  <developer id="io.github.rlmattax">
-    <name>Bob Mattax</name>
-  </developer>
-
+  
   <name>Claude Desktop</name>
   <summary>Unofficial desktop client for Claude AI</summary>
 
   <description>
     <p>
-      Claude Desktop for Linux provides a native desktop experience for interacting with Claude AI. 
-      This unofficial build packages the Windows Claude Desktop application to run seamlessly on 
-      Debian and Ubuntu-based Linux distributions.
-    </p>
-    <p>
-      Features include full Model Context Protocol (MCP) support, global hotkey (Ctrl+Alt+Space), 
-      system tray integration, and proper Linux desktop integration.
+      Claude Desktop for Linux provides a native desktop experience for interacting with Claude AI.
     </p>
   </description>
 
   <launchable type="desktop-id">${COMPONENT_ID}.desktop</launchable>
-
   <icon type="stock">${COMPONENT_ID}</icon>
-  <url type="homepage">https://claude.ai</url>
-  <url type="bugtracker">https://github.com/rlmattax/claude-desktop-debian/issues</url>
-  <url type="help">https://github.com/rlmattax/claude-desktop-debian/blob/main/README.md</url>
   
-  <screenshots>
-    <screenshot type="default">
-      <caption>Claude Desktop running on Linux</caption>
-      <image>https://github.com/user-attachments/assets/93080028-6f71-48bd-8e59-5149d148cd45</image>
-    </screenshot>
-  </screenshots>
+  <url type="homepage">https://claude.ai</url>
   
   <provides>
     <binary>AppRun</binary>
@@ -226,17 +208,6 @@ cat > "$APPDATA_FILE" << EOF
     <category>Network</category>
     <category>Utility</category>
   </categories>
-
-  <content_rating type="oars-1.1" />
-
-  <releases>
-    <release version="$VERSION" date="$(date +%Y-%m-%d)">
-      <description>
-        <p>Claude Desktop version $VERSION for Linux.</p>
-        <p>This release includes the latest upstream Claude Desktop features packaged for Linux systems.</p>
-      </description>
-    </release>
-  </releases>
 
 </component>
 EOF
