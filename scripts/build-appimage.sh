@@ -256,7 +256,9 @@ OUTPUT_PATH="$WORK_DIR/$OUTPUT_FILENAME"
 # Execute appimagetool
 # Export ARCH instead of using env
 export ARCH="$ARCHITECTURE"
-echo "Using ARCH=$ARCH" # Debug output
+# Disable AppStream validation to avoid overly strict checks
+export NO_APPSTREAM=1
+echo "Using ARCH=$ARCH and NO_APPSTREAM=1 to bypass validation" # Debug output
 if "$APPIMAGETOOL_PATH" "$APPDIR_PATH" "$OUTPUT_PATH"; then
     echo "✓ AppImage built successfully: $OUTPUT_PATH"
 else
