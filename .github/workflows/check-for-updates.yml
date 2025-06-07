@@ -82,6 +82,8 @@ jobs:
     needs: check-updates
     if: needs.check-updates.outputs.has_changes == 'true'
     runs-on: ubuntu-latest
+    outputs:
+      workflow_run_id: ${{ steps.trigger.outputs.workflow_run_id }}
     
     steps:
       - name: Checkout Repository
@@ -90,6 +92,7 @@ jobs:
           ref: main  # Ensure we have the latest commit with metadata
       
       - name: Trigger Build Workflow
+        id: trigger
         uses: actions/github-script@v7
         with:
           script: |
@@ -102,6 +105,24 @@ jobs:
             
             console.log('Build workflow triggered successfully');
             console.log('Version info:', '${{ needs.check-updates.outputs.version_info }}');
+            
+            // Wait a moment for the workflow to start, then get the run ID
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'ci.yml',
+              event: 'workflow_dispatch',
+              status: 'in_progress',
+              per_page: 1
+            });
+            
+            if (runs.data.workflow_runs && runs.data.workflow_runs.length > 0) {
+              const runId = runs.data.workflow_runs[0].id;
+              console.log('Found workflow run ID:', runId);
+              core.setOutput('workflow_run_id', runId);
+            }
       
       - name: Create Issue for New Version
         uses: actions/github-script@v7
@@ -122,7 +143,8 @@ jobs:
             **Actions Taken:**
             - ✅ Version metadata updated
             - ✅ Build workflow triggered automatically
-            - 📦 New packages will be available soon
+            - ⏳ Packages are being built
+            - 🚀 Release will be created automatically if builds succeed
             
             **Links:**
             - [Build Workflow Run](${context.payload.repository.html_url}/actions)
@@ -136,4 +158,95 @@ jobs:
               title: `New Claude Desktop Version Available: ${versionInfo}`,
               body: issueBody,
               labels: ['enhancement', 'automated', 'new-version']
-            }); 
+            });
+
+  wait-and-release:
+    name: Wait for Build and Create Release
+    needs: [check-updates, trigger-build]
+    if: needs.check-updates.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Wait for CI Build to Complete
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const maxWaitTime = 30 * 60 * 1000; // 30 minutes
+            const checkInterval = 30 * 1000;    // 30 seconds
+            const startTime = Date.now();
+            
+            console.log('Waiting for CI build to complete...');
+            
+            while (Date.now() - startTime < maxWaitTime) {
+              // Get the most recent workflow_dispatch run of ci.yml
+              const runs = await github.rest.actions.listWorkflowRuns({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'ci.yml',
+                event: 'workflow_dispatch',
+                per_page: 1
+              });
+              
+              if (runs.data.workflow_runs && runs.data.workflow_runs.length > 0) {
+                const run = runs.data.workflow_runs[0];
+                console.log(`Build status: ${run.status} - ${run.conclusion}`);
+                
+                if (run.status === 'completed') {
+                  if (run.conclusion === 'success') {
+                    console.log('✅ Build completed successfully!');
+                    return;
+                  } else {
+                    console.log(`❌ Build failed with conclusion: ${run.conclusion}`);
+                    core.setFailed(`CI build failed: ${run.conclusion}`);
+                    return;
+                  }
+                }
+              }
+              
+              console.log('Build still in progress, waiting...');
+              await new Promise(resolve => setTimeout(resolve, checkInterval));
+            }
+            
+            console.log('❌ Timeout waiting for build to complete');
+            core.setFailed('Timeout waiting for CI build to complete');
+      
+      - name: Create and Push Release Tag
+        run: |
+          # Get version info from metadata
+          version_info=$(python3 -c "
+          import json
+          with open('.claude-version-metadata', 'r') as f:
+              data = json.load(f)
+              # Use the amd64 version as the primary version
+              version = data['architectures']['amd64'].get('version', 'unknown')
+              print(version)
+          ")
+          
+          # Create tag name
+          tag_name="v1.0.0+claude${version_info}"
+          echo "Creating tag: $tag_name"
+          
+          # Configure git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Create and push tag
+          git tag -a "$tag_name" -m "Automated release for Claude Desktop v${version_info}
+          
+          This release contains packages for Claude Desktop version ${version_info}.
+          
+          Built automatically when new upstream version was detected.
+          
+          Packages included:
+          - Debian packages (.deb) for amd64 and arm64
+          - AppImage files for amd64 and arm64"
+          
+          git push origin "$tag_name"
+          
+          echo "✅ Tag $tag_name created and pushed successfully!" 
