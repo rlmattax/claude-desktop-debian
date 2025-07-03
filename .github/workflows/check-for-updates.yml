@@ -216,37 +216,84 @@ jobs:
             console.log('❌ Timeout waiting for build to complete');
             core.setFailed('Timeout waiting for CI build to complete');
       
-      - name: Create and Push Release Tag
+      - name: Download Build Artifacts
+        run: |
+          echo "📥 Downloading build artifacts from completed CI run..."
+          
+          # Get the most recent successful workflow_dispatch CI run
+          RUN_ID=$(gh run list --workflow=ci.yml --event=workflow_dispatch --status=success --limit=1 --json databaseId --jq '.[0].databaseId')
+          
+          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+            echo "❌ No successful CI workflow run found"
+            exit 1
+          fi
+          
+          echo "Found successful CI run: $RUN_ID"
+          
+          # Create artifacts directory
+          mkdir -p release-artifacts
+          
+          # Download all artifacts from the CI run
+          echo "Downloading artifacts..."
+          gh run download "$RUN_ID" --dir release-artifacts/
+          
+          # List what we downloaded
+          echo "Downloaded artifacts:"
+          find release-artifacts/ -type f -name "*.deb" -o -name "*.AppImage" | sort
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Create Release
         run: |
           # Get version info from metadata
           version_info=$(python3 -c "
           import json
           with open('.claude-version-metadata', 'r') as f:
               data = json.load(f)
-              # Use the amd64 version as the primary version
               version = data['architectures']['amd64'].get('version', 'unknown')
               print(version)
           ")
           
           # Create tag name
           tag_name="v1.0.0+claude${version_info}"
-          echo "Creating tag: $tag_name"
+          echo "Creating release: $tag_name"
           
-          # Configure git
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          # Create release notes
+          cat > release_notes.md << EOF
+          🚀 **Automated Release for Claude Desktop v${version_info}**
           
-          # Create and push tag
-          git tag -a "$tag_name" -m "Automated release for Claude Desktop v${version_info}
+          This release contains Linux packages for Claude Desktop version ${version_info}.
           
-          This release contains packages for Claude Desktop version ${version_info}.
+          **Packages Included:**
+          - 📦 Debian packages (.deb) for amd64 and arm64
+          - 📱 AppImage files for amd64 and arm64
+          
+          **Installation:**
+          - **Debian/Ubuntu**: Download the .deb file and install with \`sudo apt install ./claude-desktop_${version_info}_<arch>.deb\`
+          - **Universal Linux**: Download the AppImage file, make it executable, and run directly
+          
+          **Features:**
+          - ✅ Full Claude Desktop functionality
+          - ⌨️ Global hotkey support (Ctrl+Alt+Space)
+          - 🔔 System tray integration  
+          - 🔧 MCP (Model Context Protocol) support
+          - 🖥️ Native Linux desktop integration
           
           Built automatically when new upstream version was detected.
           
-          Packages included:
-          - Debian packages (.deb) for amd64 and arm64
-          - AppImage files for amd64 and arm64"
+          ---
+          *This is an unofficial build. Report issues at: https://github.com/${{ github.repository }}/issues*
+          EOF
           
-          git push origin "$tag_name"
+          # Create the release with all package files
+          echo "Creating GitHub release..."
+          gh release create "$tag_name" \
+            --title "Claude Desktop Linux v${version_info}" \
+            --notes-file release_notes.md \
+            release-artifacts/*/*.deb \
+            release-artifacts/*/*.AppImage
           
-          echo "✅ Tag $tag_name created and pushed successfully!" 
+          echo "✅ Release $tag_name created successfully!"
+          echo "🔗 View at: https://github.com/${{ github.repository }}/releases/tag/$tag_name"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

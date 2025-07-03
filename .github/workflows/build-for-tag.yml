@@ -1,0 +1,161 @@
+name: Build for Existing Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag to build packages for (e.g., v1.0.0+claude0.11.4)'
+        required: true
+        type: string
+      create_release:
+        description: 'Create GitHub release with artifacts'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  # Extract version from tag
+  extract-version:
+    name: Extract Claude Version
+    runs-on: ubuntu-latest
+    outputs:
+      claude_version: ${{ steps.extract.outputs.claude_version }}
+    steps:
+      - name: Extract Claude version from tag
+        id: extract
+        run: |
+          tag="${{ inputs.tag_name }}"
+          # Extract version after "claude" (e.g., v1.0.0+claude0.11.4 -> 0.11.4)
+          claude_version=$(echo "$tag" | grep -oP 'claude\K[0-9]+\.[0-9]+\.[0-9]+')
+          if [ -z "$claude_version" ]; then
+            echo "❌ Could not extract Claude version from tag: $tag"
+            exit 1
+          fi
+          echo "claude_version=$claude_version" >> $GITHUB_OUTPUT
+          echo "Extracted Claude version: $claude_version"
+
+  # Build AMD64 packages
+  build-amd64:
+    name: Build Packages (amd64 - ${{ matrix.artifact_suffix }})
+    needs: extract-version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - flags: ""
+            artifact_suffix: 'deb'
+          - flags: "--build appimage --clean no"
+            artifact_suffix: 'appimage'
+
+    uses: ./.github/workflows/build-amd64.yml
+    with:
+      build_flags: ${{ matrix.flags }}
+      artifact_suffix: ${{ matrix.artifact_suffix }}
+
+  # Build ARM64 packages  
+  build-arm64:
+    name: Build Packages (arm64 - ${{ matrix.artifact_suffix }})
+    needs: extract-version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - flags: "--clean no"
+            artifact_suffix: 'deb'
+          - flags: "--build appimage"
+            artifact_suffix: 'appimage'
+
+    uses: ./.github/workflows/build-arm64.yml
+    with:
+      build_flags: ${{ matrix.flags }}
+      artifact_suffix: ${{ matrix.artifact_suffix }}
+
+  # Create release if requested
+  create-release:
+    name: Create Release
+    if: inputs.create_release
+    needs: [extract-version, build-amd64, build-arm64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name }}
+
+      - name: Download AMD64 deb artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: package-amd64-deb
+          path: artifacts/
+
+      - name: Download AMD64 AppImage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: package-amd64-appimage
+          path: artifacts/
+
+      - name: Download ARM64 deb artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: package-arm64-deb
+          path: artifacts/
+
+      - name: Download ARM64 AppImage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: package-arm64-appimage
+          path: artifacts/
+
+      - name: Create/Update Release
+        run: |
+          claude_version="${{ needs.extract-version.outputs.claude_version }}"
+          tag_name="${{ inputs.tag_name }}"
+          
+          echo "Creating/updating release for $tag_name (Claude v$claude_version)"
+          
+          # Create release notes
+          cat > release_notes.md << EOF
+          🚀 **Claude Desktop Linux v${claude_version}**
+          
+          This release contains Linux packages for Claude Desktop version ${claude_version}.
+          
+          **Packages Included:**
+          - 📦 Debian packages (.deb) for amd64 and arm64
+          - 📱 AppImage files for amd64 and arm64
+          
+          **Installation:**
+          - **Debian/Ubuntu**: Download the .deb file and install with \`sudo apt install ./claude-desktop_${claude_version}_<arch>.deb\`
+          - **Universal Linux**: Download the AppImage file, make it executable, and run directly
+          
+          **Features:**
+          - ✅ Full Claude Desktop functionality
+          - ⌨️ Global hotkey support (Ctrl+Alt+Space)
+          - 🔔 System tray integration  
+          - 🔧 MCP (Model Context Protocol) support
+          - 🖥️ Native Linux desktop integration
+          
+          ---
+          *This is an unofficial build. Report issues at: https://github.com/${{ github.repository }}/issues*
+          EOF
+          
+          # Check if release exists and delete it to recreate with artifacts
+          if gh release view "$tag_name" >/dev/null 2>&1; then
+            echo "Release exists, deleting to recreate with artifacts..."
+            gh release delete "$tag_name" --yes
+          fi
+          
+          # Create the release with all package files
+          echo "Creating GitHub release..."
+          gh release create "$tag_name" \
+            --title "Claude Desktop Linux v${claude_version}" \
+            --notes-file release_notes.md \
+            artifacts/*.deb \
+            artifacts/*.AppImage
+          
+          echo "✅ Release $tag_name created successfully!"
+          echo "🔗 View at: https://github.com/${{ github.repository }}/releases/tag/$tag_name"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
