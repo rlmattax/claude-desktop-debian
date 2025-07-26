@@ -1,19 +1,19 @@
 {
-  "check_time": "2025-07-24T12:14:13.100779",
+  "check_time": "2025-07-26T12:12:13.713749",
   "architectures": {
     "amd64": {
-      "etag": "3b2250377065be916800b6ab2947a4a6",
+      "etag": "d2ed9b4c48ee5119f4a5c5bcfb92e124",
       "size": null,
-      "last_modified": "2025-07-23T17:55:15",
+      "last_modified": "2025-07-25T19:19:26",
       "url": "https://storage.googleapis.com/osprey-downloads-c02f6a0d-347c-492b-a752-3e0651722e97/nest-win-x64/Claude-Setup-x64.exe",
-      "version": "0.12.49"
+      "version": "0.12.55"
     },
     "arm64": {
-      "etag": "1506ffeb5a85929d6ffc3f03fd507b2d",
+      "etag": "d3ba101f7975edf00eb4c21e65f88886",
       "size": null,
-      "last_modified": "2025-07-23T17:55:44",
+      "last_modified": "2025-07-25T19:18:57",
       "url": "https://storage.googleapis.com/osprey-downloads-c02f6a0d-347c-492b-a752-3e0651722e97/nest-win-arm64/Claude-Setup-arm64.exe",
-      "version": "0.12.49"
+      "version": "0.12.55"
     }
   }
 }
